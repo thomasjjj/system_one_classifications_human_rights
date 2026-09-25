@@ -1,7 +1,9 @@
-# System One classification opportunities for human rights
+# "System One" classification opportunities for human rights investigations
 
 > [!WARNING]
 > This repo is untested. I'm waiting for Jev access so I can test and validate the code. For now, it's my contribution to exploring what this new capability might be useful for.
+> If you have access, opinions, or want to contribute, please feel free to create issues in the repo.
+> If you have access already and want to contribute by testing and validating, even better. 
 
 Since I started working in human rights, I have kept coming back to the same problem: how do we turn the firehose of information into something people can actually analyse?
 
@@ -11,7 +13,7 @@ If I have ten million Telegram posts and want to find gender-based violence, thr
 
 I could also ask it to identify the target, type of threat, protected characteristic and form of abuse, whether violence is advocated, whether the target is an individual or a group, and dozens of other attributes. The question is whether this is a sensible way to classify ten million messages.
 
-## The unpleasant choices
+## The choices
 
 I could hire people to label the dataset. Fifty researchers classifying 20,000 messages each would get me through the first million. That would take considerable time, along with annotation guidance, quality assurance, adjudication and enough overlapping annotation to check whether the researchers agree.
 
@@ -19,7 +21,10 @@ Human annotation is crucial, especially for legally or contextually complex conc
 
 I could use keywords and regular expressions, which are cheap and wonderfully predictable. Embeddings help retrieve similar content; topic modelling and clustering make large datasets easier to explore. I use and like all of these approaches.
 
-A keyword search for *kill*, though, will find threats alongside news reports, condemnations, historical quotations and somebody saying they "killed it" at karaoke. Modern LLMs can resolve much of that ambiguity, at a computational cost.
+A keyword search for *kill*, though, will find threats alongside news reports, condemnations, historical quotations and somebody saying they "killed it" at karaoke. Modern LLMs can resolve much of that ambiguity, at a computational cost.0
+
+> [!TIP]
+> It's worth noting here that I'm not making the case for replacing human workers ... ever. This solely refers to the times when there hasn't previously been the manpower or funding to work on such large datasets, and now there is, but we still want to make it as cost effective as possible. 
 
 ## Using a language generator as a classifier
 
