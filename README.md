@@ -1,39 +1,29 @@
 # System One classification opportunities for human rights
 
 > [!WARNING]
-> It should be noted that this repo is untested while I wait for Jev access to test and validate the code. Treat it as my contribution to the discovery phase of the new capability where everyone is scrambling to identify all of its use cases. 
+> This repo is untested. I'm waiting for Jev access so I can test and validate the code. For now, it's my contribution to exploring what this new capability might be useful for.
 
-Since I started working in the human rights sector, I have been repeatedly trying to solve some version of the same problem: **how do we turn the firehose of information into something that humans can actually analyse?**
+Since I started working in human rights, I have kept coming back to the same problem: how do we turn the firehose of information into something people can actually analyse?
 
-Collecting information is increasingly not the difficult part. It is perfectly possible to ingest millions of Telegram posts, social-media messages, articles and other pieces of open-source information. The harder problem is transforming that mass of text into structured information that an investigator, researcher or analyst can work with.
+Collecting the information is increasingly manageable. We can ingest millions of Telegram posts, social-media messages, articles and other open-source material. Turning that mass of text into something an investigator or researcher can work with is harder.
 
-If I have ten million Telegram posts in a database and want to know which contain gender-based violence, threats, hate speech or potentially inciting language, I can technically do that today. I can send every message to an LLM, give it a carefully designed prompt and ask it to return a classification. In fact, I do that now.
+If I have ten million Telegram posts and want to find gender-based violence, threats, hate speech or potentially inciting language, I can send each message to an LLM with a carefully designed classification prompt. I already do this.
 
-I can go further. I could ask it to identify the target, type of threat, protected characteristic, form of abuse, whether violence is advocated, whether a statement is directed at an individual or group, and dozens of other attributes.
-
-The problem is not whether this is possible.
-
-The problem is whether it is a sensible way to classify ten million messages.
+I could also ask it to identify the target, type of threat, protected characteristic and form of abuse, whether violence is advocated, whether the target is an individual or a group, and dozens of other attributes. The question is whether this is a sensible way to classify ten million messages.
 
 ## The unpleasant choices
 
-There are several ways I could approach a dataset of that size.
+I could hire people to label the dataset. Fifty researchers classifying 20,000 messages each would get me through the first million. That would take considerable time, along with annotation guidance, quality assurance, adjudication and enough overlapping annotation to check whether the researchers agree.
 
-I could hire people to label it manually. Fifty researchers could each painstakingly classify 20,000 messages and, after a considerable amount of time, I would have labelled my first million. I would also need annotation guidance, quality assurance, adjudication and enough overlapping annotation to measure whether the researchers actually agree with each other.
+Human annotation is crucial, especially for legally or contextually complex concepts. But relying on it for every item becomes difficult when the dataset runs to millions or tens of millions of messages. That is where gold-standard labelled subsets can be used for data validation. 
 
-Human annotation remains extremely important, particularly when dealing with legally or contextually complex concepts, but it is difficult to make it the primary classification mechanism for datasets containing millions or tens of millions of items.
+I could use keywords and regular expressions, which are cheap and wonderfully predictable. Embeddings help retrieve similar content; topic modelling and clustering make large datasets easier to explore. I use and like all of these approaches.
 
-I could use traditional computational methods. Keywords and regular expressions are cheap and wonderfully predictable. Embeddings can retrieve semantically similar content. Topic modelling and clustering can reduce large datasets into more manageable groups. In practice, I use and like all of these approaches.
-
-But they have limitations. A keyword can find the word *kill*; it is much less capable of distinguishing between someone threatening to kill a group, a journalist reporting that threat, a person condemning it, a historical quotation and somebody saying that they "killed it" at karaoke.
-
-Modern LLMs solve a great deal of this ambiguity.
-
-Unfortunately, they solve it rather extravagantly.
+A keyword search for *kill*, though, will find threats alongside news reports, condemnations, historical quotations and somebody saying they "killed it" at karaoke. Modern LLMs can resolve much of that ambiguity, at a computational cost.
 
 ## Using a language generator as a classifier
 
-A conventional LLM is fundamentally a system for generating sequences of tokens. Even when I only need something resembling:
+A conventional LLM generates sequences of tokens, even when all I need is:
 
 ```json
 {
@@ -41,41 +31,25 @@ A conventional LLM is fundamentally a system for generating sequences of tokens.
 }
 ```
 
-I am still invoking a model designed to generate language. 
+Depending on the classifier, the model might read a system prompt and taxonomy, inspect the message, reason about it, then produce JSON and an explanation that my software has to parse. That's reasonable for an individual request, but the overhead adds up.
 
-Depending on how I build the classifier, I might ask it to read a system prompt, read a classification taxonomy, inspect the message, reason about the answer, produce JSON, explain its reasoning and perhaps wrap the whole thing in a schema that my software then parses.
+At just 50 output tokens per message, ten million messages require 500 million output tokens. Much of that text may exist only to pass a decision to another piece of software.
 
-For an individual request, this is perfectly reasonable.
+The input has overhead too: the same instructions, taxonomy and output schema may be sent repeatedly. Prompt caching and batching help, and smaller models can bring costs down substantially. Even so, I'm paying for language generation when I need a classification.
 
-At large scale, small inefficiencies compound.
+Autoregressive LLMs generate output one token at a time, conditioned on previous tokens. TypeSafe says Jev can evaluate structured decisions in parallel. Its launch material argues that generating strings is unnecessarily expensive when the output only needs to contain machine-readable decisions.
 
-If a classifier generates only **50 output tokens per message**, running it over ten million messages means generating **500 million output tokens**. If most of those tokens exist purely to communicate a decision to another piece of software, much of that generation is effectively scaffolding around the thing I actually wanted: a decision.
+The computation also requires hardware, electricity and datacentre infrastructure. The environmental footprint depends on the model, provider, hardware and datacentre, so I can't give a useful universal figure for a classification. Across millions of messages, though, reducing the computation per message matters.
 
-There is also repeated input overhead. The model may need to receive versions of the same instructions, taxonomy and output schema again and again. Prompt caching and batching can mitigate this, and smaller models make the economics substantially better, but the underlying architecture is still being asked to perform a task that looks somewhat different from what it was principally designed to do.
+I feel uneasy about using AI at this scale. Refusing to use it has some moral appeal, but leaves me with millions of messages that somebody still needs to classify. For now, my somewhat guilt-ridden approach is to use it where I think it has public-interest value, minimise unnecessary computation and measure its limitations.
 
-Autoregressive LLMs produce their outputs sequentially: one token is generated conditioned on the previous tokens. TypeSafe contrasts this with Jev's model, where a set of structured decisions can be evaluated in parallel rather than emitted as a piece of generated text. TypeSafe's launch material explicitly argues that strings are extremely flexible but unnecessarily expensive when the desired output is a collection of machine-readable decisions.
-
-There is a resource question here too. Inference requires hardware, electricity and supporting datacentre infrastructure. The exact environmental footprint of a classification depends on the model, hardware, provider and datacentre and is difficult to reduce to a meaningful universal figure. But the general principle is obvious: if I want to evaluate millions of messages, making each evaluation cheaper computationally matters.
-
-This leaves me in a slightly uncomfortable position. I could take a principled stand against using AI for this kind of mass classification, which has a certain moral appeal, but I would still have millions of messages that somebody needs to classify.
-
-So, for now, I have taken the more guilt-ridden approach: use the technology where it produces meaningful public-interest value, try to minimise unnecessary computation, measure its limitations, and hope that progress increasingly shifts from simply making models *bigger* towards making particular forms of machine intelligence dramatically more efficient.
-
-Aviation provides a rough analogy. Technological progress did not result in every passenger flight becoming supersonic. For most journeys we converged on aircraft optimised around a much more useful combination of speed, efficiency, reliability and cost.
-
-For some AI workloads, perhaps the equivalent transition is overdue.
+I'd like to see more progress on efficiency for particular tasks. Aviation is a rough analogy: most passenger flights never became supersonic. Aircraft developed around the speed, efficiency, reliability and cost that made sense for those journeys. I wonder whether some AI workloads need a similar shift.
 
 ## What about specialist moderation models?
 
-There are already models designed more specifically for classification.
+Meta's Llama Guard family already offers more specialised classification. These models are fine-tuned around safety taxonomies to classify text as safe or unsafe and identify harm categories. Meta describes deriving an "unsafe" probability from the first classification token, which applications can use to set a threshold.
 
-Meta's **Llama Guard** family is an obvious example. Llama Guard models are fine-tuned around safety taxonomies and can classify text as safe or unsafe and identify relevant harm categories. Meta describes obtaining an "unsafe" probability from the probability assigned to the model's first classification token, allowing applications to threshold that score.
-
-This is considerably closer to what I want than asking a general-purpose chatbot to write an essay about every Telegram post.
-
-But it exposes another problem.
-
-A **generic harmfulness score is not the same thing as a human-rights classification**.
+That gets closer to what I need, although a general harmfulness score leaves much of a human-rights research question unanswered.
 
 If a model tells me:
 
@@ -83,64 +57,39 @@ If a model tells me:
 unsafe = 0.93
 ```
 
-that might be extremely useful for content moderation. It is much less useful if my research question is:
+that may help with moderation. For research, I need to know:
 
 > What exactly is present in this message, and which components of a particular human-rights or legal definition does it satisfy?
 
-There are too many potentially hidden variables inside the score.
+The score alone doesn't tell me which elements are present. Hateful content may not amount to incitement to violence. A credible threat may not be hate speech. Misogynistic abuse may fall outside the analytical definition being used for technology-facilitated gender-based violence. Advocacy of violence may lack the protected-group and intent elements relevant to genocide.
 
-A piece of content can be extremely hateful without amounting to incitement to violence. It can contain a credible threat without being hate speech. It can contain misogynistic abuse without meeting the analytical definition being used for technology-facilitated gender-based violence. A statement can advocate violence against people while lacking the specific protected-group and intent elements relevant to genocide.
-
-
-The purpose of this project is therefore not to create another universal **badness score**.
-
-It is to decompose complicated classifications into observable propositions.
+I want to break these classifications down into observable propositions that can be examined separately.
 
 ## Why Jev is interesting
 
-This is where TypeSafe's **Jev** becomes particularly interesting.
+TypeSafe describes Jev as its first "System One Model". It accepts unstructured information and returns predefined, typed probabilistic decisions. The company says those decisions can be evaluated in parallel, with free-form string generation traded for speed, structured outputs and calibrated probabilities.
 
-TypeSafe describes Jev as its first "System One Model": rather than generating arbitrary strings, Jev accepts unstructured information and returns predefined, typed probabilistic decisions. Its architecture is intended specifically for automation and high-volume decision workloads. TypeSafe says the individual decisions can be evaluated in parallel and describes the model as giving up free-form string generation in exchange for speed, structured outputs and calibrated probabilities.
+At launch, TypeSafe listed Jev at $0.042 per million input tokens, with output described as too cheap to meter. It also claimed substantial speed and efficiency gains over conventional LLM workflows for structured decision tasks. These are vendor claims about an early-access system; they need independent testing.
 
-At launch, TypeSafe listed Jev at **$0.042 per million input tokens**, with output described as too cheap to meter, while claiming substantially greater speed and efficiency than conventional LLM workflows on the kinds of structured decision tasks it is designed for. These are currently vendor claims from an early-access system and need independent testing, but if the economics survive contact with real workloads they are extremely interesting for OSINT and human-rights research.
-
-Ten million classifications stops looking quite so absurd when the primitive being purchased is closer to a very cheap probabilistic decision than a miniature conversation with a language model.
-
-More importantly, the design of Jev encourages a different way of thinking about the problem.
+If those claims hold up on real workloads, Jev could make classifying ten million messages affordable for more OSINT and human-rights projects. Its design also gives me a way to ask smaller questions and combine the answers in code.
 
 ## Don't ask the model to make the whole decision
 
-Imagine that I want to identify **direct and public incitement to genocide**.
-
-The tempting approach is:
+Suppose I want to identify direct and public incitement to genocide. I could ask:
 
 ```text
 Does this message constitute direct and public incitement to genocide?
 ```
 
-And perhaps the model returns:
+The model might return:
 
 ```text
 0.82
 ```
 
-But what does `0.82` actually mean?
+What does `0.82` tell me? The model might be unsure whether the target is a protected group, whether the statement was public, or whether the speaker had the necessary intent. It might have interpreted a euphemism as a direct appeal or missed that the speaker was quoting someone else. I also can't see how it weighted those factors.
 
-Was it unsure whether the target constituted a protected group?
-
-Was it confident the language advocated killing but uncertain whether it was public?
-
-Did it detect genocidal rhetoric but not the necessary intent?
-
-Did it interpret a euphemism as a direct call to violence?
-
-Was the speaker quoting somebody else?
-
-Did the model silently weight one factor more heavily than another?
-
-A single score conceals all of this.
-
-Instead, the much more interesting approach is to ask a collection of much smaller questions:
+I would get more useful information by asking separate questions:
 
 ```text
 Is the message directed at a national, ethnic, racial or religious group?
@@ -160,13 +109,7 @@ Is there evidence that the speaker intends others to act?
 Is there evidence of intent to destroy the group, in whole or in part?
 ```
 
-These are still AI judgements, and they can still be wrong.
-
-But each question is much closer to an **atomic proposition**.
-
-Instead of asking the model to somehow encode an entire legal test inside a mysterious `0.82`, we ask it a collection of propositions whose meaning we understand and combine them ourselves in ordinary code.
-
-Conceptually:
+Each answer is still an AI judgement and can be wrong. But these smaller, "atomic" propositions give us something we can inspect and combine in ordinary code. Conceptually:
 
 ```python
 possible_genocide_incitement = (
@@ -179,25 +122,17 @@ possible_genocide_incitement = (
 )
 ```
 
-The AI helps answer fuzzy questions.
-
-**The software controls the logic.**
-
-
+The model assesses each proposition; the software defines how the answers combine.
 
 ## Binary questions, probabilistic answers
 
-"Atomic" does not mean pretending ambiguity has disappeared.
-
-The questions can be framed as binary propositions:
+Even a narrowly defined proposition can be ambiguous:
 
 ```text
 The speaker advocates killing members of the targeted group.
 ```
 
-but the useful output is not necessarily a hard `True` or `False`.
-
-It may instead be:
+The answer need not be a hard `True` or `False`. It could be:
 
 ```text
 P(True) = 0.97
@@ -209,19 +144,11 @@ or:
 P(True) = 0.54
 ```
 
-That uncertainty is valuable.
-
-A system can confidently pass straightforward examples, reject straightforward negatives and route ambiguous material towards a human analyst.
-
-The resulting architecture begins to look less like automated legal judgement and more like a **large-scale evidence triage system**.
-
-That is a much more useful goal.
+Those probabilities could help the system pass clear positives, reject clear negatives and send ambiguous material to a human analyst. The aim is evidence triage at scale, with legal judgement left to people.
 
 ## System One does not mean context-free
 
-There is an important limitation to understand.
-
-Jev's lack of free-form generation or a conventional reasoning stage does not mean it is restricted to the literal words contained in a message. TypeSafe describes the input as structured program state containing unstructured information. We can therefore supply contextual information alongside the text.
+Jev's lack of free-form generation or a conventional reasoning stage doesn't restrict its input to the words of a single message. TypeSafe describes that input as structured program state containing unstructured information, so we can supply context alongside the text.
 
 For example:
 
@@ -238,21 +165,13 @@ For example:
 }
 ```
 
-What changes is **where the reasoning architecture lives**.
+With a general-purpose LLM, I can leave a question underspecified and ask the model to reason through it. Here, I need to identify the relevant variables, supply the context, define the questions and decide how the answers interact.
 
-A general-purpose LLM can be handed an underspecified question and asked to reason its way toward an answer.
-
-With the approach explored here, we should identify the variables ourselves, provide the relevant state, ask narrowly defined questions and explicitly define how their answers interact.
-
-That requires more work from the person designing the classifier.
-
-I consider that a feature.
-
-For human-rights research, important assumptions should ideally be visible in the methodology rather than buried somewhere inside a prompt or an invisible chain of reasoning.
+That's more work for whoever designs the classifier. I think it's worth doing: in human-rights research, readers should be able to see and challenge the assumptions in the methodology.
 
 ## What this project is trying to build
 
-This repository explores whether Jev and similar decision-oriented models can be used as a high-volume classification layer for human-rights and OSINT datasets.
+This repository explores whether Jev and similar models can classify human-rights and OSINT datasets at high volume.
 
 The initial classification families include:
 
@@ -267,21 +186,9 @@ The initial classification families include:
 - sexualised abuse and harassment;
 - other forms of violent or discriminatory rhetoric.
 
-The aim is not to ask an AI system:
+Questions such as "Is this illegal?" or "Is this a human-rights violation?" involve legal, contextual and evidential judgements that a single classifier score cannot adequately explain.
 
-> **Is this illegal?**
-
-Nor is it:
-
-> **Is this a human-rights violation?**
-
-Those questions frequently contain legal, contextual and evidential judgements that should not be collapsed into a single opaque classifier score.
-
-Instead, the project asks:
-
-> **What observable elements are present in this material, how confident are we that each element is present, and what conclusions follow when we combine those elements using an explicit analytical framework?**
-
-That produces a pipeline resembling:
+The project instead asks which observable elements are present, how confident we are about each one, and what follows when we combine them using an explicit analytical framework. The proposed pipeline looks like this:
 
 ```text
                        MESSAGE
@@ -310,20 +217,12 @@ That produces a pipeline resembling:
           human analyst
 ```
 
-The hypothesis is straightforward:
+My hypothesis is that, for very large text datasets, small probabilistic judgements combined through explicit logic may be more useful than asking a general-purpose LLM to work through the whole classification each time. TypeSafe describes a similar approach: breaking problems into independent questions and using the probabilities in ordinary program logic.
 
-**for very large text datasets, a collection of small, explicit, probabilistic judgements may be more useful than repeatedly asking a general-purpose language model to reason through and generate the answer to a large classification problem.**
+Whether Jev is good enough for human-rights classification still needs testing.
 
-TypeSafe makes a similar argument in its own description of Jev: its more reliable workflows tend to decompose problems into many independent questions and then use the resulting probabilities inside ordinary program logic.
+I'm still waiting for access. This repository starts with the methodology, proposed classification schemas and evaluation framework; the architecture alone doesn't tell us whether the model will work.
 
-Whether Jev specifically is good enough for human-rights classification is an empirical question.
+Once I have access, I'll build gold-standard datasets and compare Jev with human annotations and conventional LLM classifiers. That means measuring false positives and false negatives, testing multilingual and coded language, checking where context changes the classification, and calibrating thresholds. The results should help establish which questions can be automated and which need a human analyst.
 
-At the time of writing I am still waiting for access, so this repository begins with the methodology, proposed classification schemas and evaluation framework rather than assuming the model works simply because its architecture is appealing.
-
-Once access is available, the interesting work begins: build gold-standard datasets, compare Jev against human annotations and conventional LLM classifiers, measure false positives and false negatives, test multilingual and coded language, determine where context changes classifications, calibrate thresholds, and work out which questions can genuinely be automated and which should remain firmly in the hands of human analysts.
-
-That, ultimately, is the point of the project.
-
-Not to replace human judgement with a model.
-
-To make it possible for human judgement to operate over datasets that would otherwise be impossible to meaningfully examine.
+I want this work to help researchers examine datasets they otherwise couldn't meaningfully get through, while keeping responsibility for the judgements with the people doing the research.
