@@ -1,5 +1,8 @@
 # System One classification opportunities for human rights
 
+> [!WARNING]
+> It should be noted that this repo is untested while I wait for Jev access to test and validate the code. Treat it as my contribution to the discovery phase of the new capability where everyone is scrambling to identify all of its use cases. 
+
 Since I started working in the human rights sector, I have been repeatedly trying to solve some version of the same problem: **how do we turn the firehose of information into something that humans can actually analyse?**
 
 Collecting information is increasingly not the difficult part. It is perfectly possible to ingest millions of Telegram posts, social-media messages, articles and other pieces of open-source information. The harder problem is transforming that mass of text into structured information that an investigator, researcher or analyst can work with.
