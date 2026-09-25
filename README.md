@@ -23,7 +23,7 @@ I could use keywords and regular expressions, which are cheap and wonderfully pr
 
 A keyword search for *kill*, though, will find threats alongside news reports, condemnations, historical quotations and somebody saying they "killed it" at karaoke. Modern LLMs can resolve much of that ambiguity, at a computational cost.0
 
-> [!TIP]
+> [!NOTE]
 > It's worth noting here that I'm not making the case for replacing human workers ... ever. This solely refers to the times when there hasn't previously been the manpower or funding to work on such large datasets, and now there is, but we still want to make it as cost effective as possible. 
 
 ## Using a language generator as a classifier
